@@ -1,9 +1,11 @@
+import DAO.InventoryDAO;
+import model.Inventory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,6 +22,19 @@ public class ShoppingOfficeSuppliesApp {
         Admin admin = connection.getAdmin();
         try {
             createTables(admin);
+            InventoryDAO inventoryDAO = new InventoryDAO(connection
+                    .getTable(TableName.valueOf(InventoryDAO.TABLE_NAME)));
+            inventoryDAO.addInventory("pen", 10);
+            inventoryDAO.addInventory("book", 19);
+            inventoryDAO.addInventory("marker", 22);
+            inventoryDAO.addInventory("eraser", 5);
+
+            List<Inventory> inventories = inventoryDAO.getInventories();
+
+            for(Inventory inventory: inventories) {
+                System.out.println(inventory.toString());
+            }
+
         } finally {
             connection.close();
         }
@@ -27,15 +42,10 @@ public class ShoppingOfficeSuppliesApp {
 
     public static void createTables(Admin admin) throws IOException {
 
-        byte[] tName = Bytes.toBytes("tname");
-        byte[] CF1 = Bytes.toBytes("cf1");
-        byte[] CF2 = Bytes.toBytes("cf2");
-
         List<byte[]> colFamilyList = new ArrayList<byte[]>();
-        colFamilyList.add(CF1);
-        colFamilyList.add(CF2);
 
-        InitTables.createTable(admin, tName, colFamilyList, 3);
+        colFamilyList.add(InventoryDAO.STOCK_CF);
+        InitTables.createTable(admin, InventoryDAO.TABLE_NAME, colFamilyList, 3);
 
     }
 
