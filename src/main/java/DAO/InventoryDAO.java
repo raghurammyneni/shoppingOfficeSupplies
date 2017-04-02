@@ -98,7 +98,7 @@ public class InventoryDAO {
         Scan scan = mkScan();
         ResultScanner results = null;
         try {
-            results = table.getScanner(scan);
+            results = this.table.getScanner(scan);
             for(Result result: results) {
                 inventories.add(createInventory(result));
             }
@@ -111,6 +111,25 @@ public class InventoryDAO {
 
     public Inventory createInventory (Result result) {
         return new Inventory(result.getRow(), result.getValue(STOCK_CF, QUANTITY_COL));
+    }
+
+    public Result checkOutWithIncrement(String stockId, String cartId, long amt) throws IOException {
+        Inventory inventory = this.getInventory(stockId);
+        long currentQuantity = inventory.getQuantity();
+        Result result = null;
+        try {
+            if (currentQuantity - amt < 0) {
+                System.out.println("Not enough inventory for " + stockId);
+            } else {
+                Increment inc = new Increment(Bytes.toBytes(stockId));
+                inc.addColumn(STOCK_CF, QUANTITY_COL, -amt);
+                inc.addColumn(STOCK_CF, Bytes.toBytes(cartId), amt);
+                result = table.increment(inc);
+            }
+        } finally {
+            close();
+        }
+        return result;
     }
 
 }
